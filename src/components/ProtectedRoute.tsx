@@ -37,7 +37,15 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  if (!isAdminLoggedIn && (!userRole || !allowedRoles.includes(userRole))) {
+  // Debug information
+  console.log("CurrentUser:", currentUser);
+  console.log("UserRole:", userRole);
+  console.log("AllowedRoles:", allowedRoles);
+
+  // Check if user role is allowed
+  const hasAllowedRole = userRole && allowedRoles.includes(userRole);
+  
+  if (!hasAllowedRole && !isAdminLoggedIn) {
     // Redirect to unauthorized page if not authorized
     return <Navigate to="/unauthorized" replace />;
   }

@@ -42,15 +42,19 @@ const Login = () => {
       
       // For non-admin users, use Firebase authentication
       await login(email, password);
+      
+      // Successful login
       toast({
         title: "Login successful",
         description: "Welcome to the Examination Portal",
       });
+      
+      // Redirect to dashboard
       navigate("/dashboard");
     } catch (error) {
       toast({
         title: "Login failed",
-        description: "Invalid email or password. Please try again.",
+        description: "Invalid credentials. Please try again.",
         variant: "destructive",
       });
       console.error("Login error:", error);
@@ -88,10 +92,13 @@ const Login = () => {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="pl-10"
-                    placeholder="email@example.com or reg123"
+                    placeholder="email@example.com or REG2025001"
                     required
                   />
                 </div>
+                <p className="text-xs text-slate-500">
+                  Students can login with their registration number
+                </p>
               </div>
               
               <div className="space-y-2">
