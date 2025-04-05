@@ -26,7 +26,7 @@ interface AuthContextType {
   currentUser: AuthUser | null;
   userRole: UserRole | null;
   login: (email: string, password: string) => Promise<void>;
-  teacherRegister: (email: string, password: string, name: string) => Promise<void>;
+  teacherRegister: (email: string, password: string, name: string, branch?: string) => Promise<void>;
   studentRegister: (regNumber: string, password: string, name: string) => Promise<void>;
   logout: () => Promise<void>;
   loading: boolean;
@@ -51,11 +51,18 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
   const [loading, setLoading] = useState(true);
 
   // Function to set user role in the database
-  const setUserRoleInDB = async (uid: string, role: UserRole, name: string) => {
-    await set(ref(database, `users/${uid}`), {
+  const setUserRoleInDB = async (uid: string, role: UserRole, name: string, branch?: string) => {
+    const userData: { role: UserRole; name: string; branch?: string } = {
       role,
       name
-    });
+    };
+    
+    // Add branch if provided
+    if (branch) {
+      userData.branch = branch;
+    }
+    
+    await set(ref(database, `users/${uid}`), userData);
   };
 
   // Function to get user role from the database
@@ -71,10 +78,10 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
   };
 
   // Teacher registration (should be called by admin)
-  const teacherRegister = async (email: string, password: string, name: string) => {
+  const teacherRegister = async (email: string, password: string, name: string, branch?: string) => {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     await updateProfile(userCredential.user, { displayName: name });
-    await setUserRoleInDB(userCredential.user.uid, "teacher", name);
+    await setUserRoleInDB(userCredential.user.uid, "teacher", name, branch);
   };
 
   // Student registration (should be called by teacher)
