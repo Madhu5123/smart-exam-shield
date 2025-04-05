@@ -23,6 +23,24 @@ const Login = () => {
     
     try {
       setLoading(true);
+      
+      // Check for admin credentials
+      if (email === "admin@examportal.com" && password === "adminexamportal") {
+        // Hard-coded admin login without using Firebase authentication
+        toast({
+          title: "Admin login successful",
+          description: "Welcome to the Examination Portal",
+        });
+        
+        // Store admin info in localStorage to persist login state
+        localStorage.setItem("adminLoggedIn", "true");
+        
+        // Redirect to admin dashboard
+        navigate("/dashboard");
+        return;
+      }
+      
+      // For non-admin users, use Firebase authentication
       await login(email, password);
       toast({
         title: "Login successful",
@@ -110,14 +128,6 @@ const Login = () => {
               </Button>
             </form>
           </CardContent>
-          <CardFooter className="flex justify-center">
-            <p className="text-sm text-muted-foreground">
-              Don&apos;t have an account?{" "}
-              <Link to="/admin-register" className="text-examblue-600 hover:underline font-medium">
-                Register as Admin
-              </Link>
-            </p>
-          </CardFooter>
         </Card>
       </div>
     </div>

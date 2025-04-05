@@ -15,12 +15,15 @@ import StudentDashboard from "./dashboards/StudentDashboard";
 const Dashboard = () => {
   const { currentUser, userRole, logout } = useAuth();
   const navigate = useNavigate();
+  
+  // Check if admin is logged in via localStorage
+  const isAdminLoggedIn = localStorage.getItem("adminLoggedIn") === "true";
 
   useEffect(() => {
-    if (!currentUser) {
+    if (!currentUser && !isAdminLoggedIn) {
       navigate("/login");
     }
-  }, [currentUser, navigate]);
+  }, [currentUser, isAdminLoggedIn, navigate]);
 
   const handleLogout = async () => {
     try {
@@ -31,8 +34,12 @@ const Dashboard = () => {
     }
   };
 
-  // Render the appropriate dashboard based on user role
+  // Determine which dashboard to render and which user info to display
   const renderRoleDashboard = () => {
+    if (isAdminLoggedIn) {
+      return <AdminDashboard />;
+    }
+    
     switch (userRole) {
       case "admin":
         return <AdminDashboard />;
@@ -48,6 +55,12 @@ const Dashboard = () => {
         );
     }
   };
+  
+  // Get the user display name
+  const displayName = isAdminLoggedIn ? "Administrator" : currentUser?.displayName;
+  
+  // Get the user role for display
+  const displayRole = isAdminLoggedIn ? "admin" : userRole;
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -58,8 +71,8 @@ const Dashboard = () => {
           
           <div className="flex items-center gap-4">
             <div className="text-right mr-2">
-              <p className="font-medium">{currentUser?.displayName}</p>
-              <p className="text-sm text-slate-500 capitalize">{userRole}</p>
+              <p className="font-medium">{displayName}</p>
+              <p className="text-sm text-slate-500 capitalize">{displayRole}</p>
             </div>
             
             <Button 
@@ -80,11 +93,12 @@ const Dashboard = () => {
         <Card className="mb-6">
           <CardHeader className="pb-3">
             <CardTitle className="text-2xl">
-              Welcome, {currentUser?.displayName}
+              Welcome, {displayName}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-slate-600">
+              {isAdminLoggedIn && "Manage teachers and monitor the examination portal."}
               {userRole === "admin" && "Manage teachers and monitor the examination portal."}
               {userRole === "teacher" && "Manage students, create exams, and monitor student performance."}
               {userRole === "student" && "View and take your assigned exams."}

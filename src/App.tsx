@@ -10,7 +10,6 @@ import ProtectedRoute from "./components/ProtectedRoute";
 // Pages
 import Index from "./pages/Index";
 import Login from "./pages/Login";
-import AdminRegister from "./pages/AdminRegister";
 import Dashboard from "./pages/Dashboard";
 import Unauthorized from "./pages/Unauthorized";
 import NotFound from "./pages/NotFound";
@@ -27,7 +26,6 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
-            <Route path="/admin-register" element={<AdminRegister />} />
             <Route path="/unauthorized" element={<Unauthorized />} />
             
             {/* Protected Routes */}

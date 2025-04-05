@@ -14,6 +14,9 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 }) => {
   const { currentUser, userRole, loading } = useAuth();
   const location = useLocation();
+  
+  // Check if admin is logged in via localStorage
+  const isAdminLoggedIn = localStorage.getItem("adminLoggedIn") === "true";
 
   if (loading) {
     return (
@@ -23,12 +26,18 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     );
   }
 
-  if (!currentUser) {
+  // Allow access if admin is logged in and admin role is allowed
+  if (isAdminLoggedIn && allowedRoles.includes("admin")) {
+    return <>{children}</>;
+  }
+
+  // For non-admin users, check Firebase auth
+  if (!currentUser && !isAdminLoggedIn) {
     // Redirect to login page if not logged in
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  if (!userRole || !allowedRoles.includes(userRole)) {
+  if (!isAdminLoggedIn && (!userRole || !allowedRoles.includes(userRole))) {
     // Redirect to unauthorized page if not authorized
     return <Navigate to="/unauthorized" replace />;
   }

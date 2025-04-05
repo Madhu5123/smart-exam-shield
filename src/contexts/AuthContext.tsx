@@ -25,7 +25,6 @@ interface AuthContextType {
   currentUser: AuthUser | null;
   userRole: UserRole | null;
   login: (email: string, password: string) => Promise<void>;
-  adminRegister: (email: string, password: string, name: string) => Promise<void>;
   teacherRegister: (email: string, password: string, name: string) => Promise<void>;
   studentRegister: (regNumber: string, password: string, name: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -70,13 +69,6 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
     return null;
   };
 
-  // Admin registration
-  const adminRegister = async (email: string, password: string, name: string) => {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    await updateProfile(userCredential.user, { displayName: name });
-    await setUserRoleInDB(userCredential.user.uid, "admin", name);
-  };
-
   // Teacher registration (should be called by admin)
   const teacherRegister = async (email: string, password: string, name: string) => {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -105,7 +97,11 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
   };
 
   // Logout
-  const logout = () => {
+  const logout = async () => {
+    // Clear admin login state if exists
+    localStorage.removeItem("adminLoggedIn");
+    
+    // For Firebase authenticated users
     return signOut(auth);
   };
 
@@ -135,7 +131,6 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
     currentUser,
     userRole,
     login,
-    adminRegister,
     teacherRegister,
     studentRegister,
     logout,
