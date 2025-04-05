@@ -95,7 +95,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
       });
       
       console.log("Student registration successful:", userCredential.user.uid);
-      return userCredential.user;
+      // Don't return the user object, just return void to match the type
     } catch (error) {
       console.error("Student registration failed:", error);
       throw error;
