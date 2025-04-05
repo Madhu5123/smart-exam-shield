@@ -42,10 +42,11 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   console.log("UserRole:", userRole);
   console.log("AllowedRoles:", allowedRoles);
 
-  // Check if user role is allowed
-  const hasAllowedRole = userRole && allowedRoles.includes(userRole);
-  
-  if (!hasAllowedRole && !isAdminLoggedIn) {
+  // Check if user role is allowed - fix the logic to properly check roles
+  if (userRole && allowedRoles.includes(userRole)) {
+    // User has allowed role, permit access
+    return <>{children}</>;
+  } else if (!isAdminLoggedIn) {
     // Redirect to unauthorized page if not authorized
     return <Navigate to="/unauthorized" replace />;
   }
