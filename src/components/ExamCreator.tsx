@@ -177,32 +177,33 @@ const ExamCreator: React.FC = () => {
     setLoading(true);
     const examsRef = ref(database, "exams");
     
-    const unsubscribe = get(examsRef).then((snapshot) => {
-      if (snapshot.exists()) {
-        const data = snapshot.val();
-        const examsList: Exam[] = [];
-        
-        Object.keys(data).forEach((key) => {
-          examsList.push({
-            id: key,
-            ...data[key],
+    const fetchExams = async () => {
+      try {
+        const snapshot = await get(examsRef);
+        if (snapshot.exists()) {
+          const data = snapshot.val();
+          const examsList: Exam[] = [];
+          
+          Object.keys(data).forEach((key) => {
+            examsList.push({
+              id: key,
+              ...data[key],
+            });
           });
-        });
-        
-        // Sort by creation date descending
-        examsList.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-        
-        setExams(examsList);
+          
+          // Sort by creation date descending
+          examsList.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+          
+          setExams(examsList);
+        }
+        setLoading(false);
+      } catch (error) {
+        console.error("Error fetching exams:", error);
+        setLoading(false);
       }
-      setLoading(false);
-    }).catch((error) => {
-      console.error("Error fetching exams:", error);
-      setLoading(false);
-    });
-    
-    return () => {
-      // No unsubscribe needed as we're using get, not onValue
     };
+    
+    fetchExams();
   }, []);
 
   const handleAddQuestion = () => {

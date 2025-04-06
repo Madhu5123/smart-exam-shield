@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -64,7 +63,6 @@ const TeacherDashboard = () => {
   const { studentRegister } = useAuth();
   const { toast } = useToast();
 
-  // Load branches from database
   useEffect(() => {
     const branchesRef = ref(database, "branches");
     
@@ -87,7 +85,6 @@ const TeacherDashboard = () => {
     return () => unsubscribe();
   }, []);
 
-  // Load students from database
   useEffect(() => {
     const studentsRef = ref(database, "students");
     
@@ -113,7 +110,6 @@ const TeacherDashboard = () => {
     return () => unsubscribe();
   }, []);
 
-  // Load subjects from database
   useEffect(() => {
     const subjectsRef = ref(database, "subjects");
     
@@ -144,7 +140,6 @@ const TeacherDashboard = () => {
     try {
       setLoading(true);
       
-      // Check if registration number already exists
       const studentsRef = ref(database, "students");
       const snapshot = await get(studentsRef);
       const data = snapshot.val();
@@ -159,14 +154,11 @@ const TeacherDashboard = () => {
         }
       }
       
-      // Register student with Firebase Auth
       await studentRegister(regNumber, password, name);
       
-      // Update student with semester, branch and subjects
       const userQuery = await get(ref(database, "users"));
       const users = userQuery.val();
       
-      // Find the student's UID
       let studentUid = null;
       Object.keys(users).forEach(uid => {
         if (users[uid].role === 'student' && users[uid].name === name) {
@@ -175,10 +167,8 @@ const TeacherDashboard = () => {
       });
       
       if (studentUid) {
-        // Add semester and subjects to the student
         await set(ref(database, `students/${studentUid}/semester`), semester);
         
-        // Add branch to the student
         if (selectedBranch) {
           await set(ref(database, `students/${studentUid}/branch`), selectedBranch);
         }
@@ -193,7 +183,6 @@ const TeacherDashboard = () => {
         description: `${name} has been added with registration number ${regNumber}.`,
       });
       
-      // Reset form
       setName("");
       setRegNumber("");
       setPassword("");
@@ -224,7 +213,6 @@ const TeacherDashboard = () => {
     try {
       setLoading(true);
       
-      // Check if subject code already exists
       const subjectsRef = ref(database, "subjects");
       const snapshot = await get(subjectsRef);
       const data = snapshot.val();
@@ -239,7 +227,6 @@ const TeacherDashboard = () => {
         }
       }
       
-      // Add subject to database
       const newSubjectRef = push(ref(database, "subjects"));
       await set(newSubjectRef, {
         name: subjectName,
@@ -252,7 +239,6 @@ const TeacherDashboard = () => {
         description: `${subjectName} has been added with code ${subjectCode}.`,
       });
       
-      // Reset form
       form.reset();
       setIsAddingSubject(false);
     } catch (error: any) {
@@ -270,10 +256,6 @@ const TeacherDashboard = () => {
   const handleDeleteStudent = async (studentId: string, studentName: string) => {
     if (window.confirm(`Are you sure you want to delete ${studentName}?`)) {
       try {
-        // In a real app, you'd need to delete the user from Firebase Auth as well
-        // This would typically be done through a Cloud Function for security
-        
-        // For now, we'll just remove from the database
         await remove(ref(database, `students/${studentId}`));
         await remove(ref(database, `users/${studentId}`));
         
@@ -344,7 +326,6 @@ const TeacherDashboard = () => {
           </TabsTrigger>
         </TabsList>
 
-        {/* Students Tab */}
         <TabsContent value="students" className="space-y-4">
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-semibold">Manage Students</h2>
@@ -493,7 +474,6 @@ const TeacherDashboard = () => {
             </Dialog>
           </div>
 
-          {/* Students List */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {students.length === 0 ? (
               <Card className="col-span-full">
@@ -554,7 +534,6 @@ const TeacherDashboard = () => {
           </div>
         </TabsContent>
 
-        {/* Subjects Tab */}
         <TabsContent value="subjects" className="space-y-4">
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-semibold">Manage Subjects</h2>
@@ -636,7 +615,6 @@ const TeacherDashboard = () => {
             </Dialog>
           </div>
 
-          {/* Subjects List */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {subjects.length === 0 ? (
               <Card className="col-span-full">
@@ -679,12 +657,10 @@ const TeacherDashboard = () => {
           </div>
         </TabsContent>
 
-        {/* Exams Tab */}
-        <TabsContent value="exams">
+        <TabsContent value="exams" className="mt-6">
           <ExamCreator />
         </TabsContent>
 
-        {/* Analytics Tab - Placeholder for now */}
         <TabsContent value="analytics">
           <Card>
             <CardHeader>
