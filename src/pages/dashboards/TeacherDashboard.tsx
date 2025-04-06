@@ -29,8 +29,7 @@ import {
 } from "@/components/ui/dialog";
 import { get, ref, set, remove, onValue, push } from "firebase/database";
 import { database } from "@/lib/firebase";
-import { Form, FormField, FormItem, FormLabel, FormControl, FormDescription, FormMessage } from "@/components/ui/form";
-import { useForm } from "react-hook-form";
+import ExamCreator from "@/components/ExamCreator";
 
 interface Student {
   id: string;
@@ -59,9 +58,34 @@ const TeacherDashboard = () => {
   const [semester, setSemester] = useState("");
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [branches, setBranches] = useState<{id: string, name: string}[]>([]);
+  const [selectedBranch, setSelectedBranch] = useState("");
   
   const { studentRegister } = useAuth();
   const { toast } = useToast();
+
+  // Load branches from database
+  useEffect(() => {
+    const branchesRef = ref(database, "branches");
+    
+    const unsubscribe = onValue(branchesRef, (snapshot) => {
+      const data = snapshot.val();
+      if (!data) return;
+      
+      const branchesList: {id: string, name: string}[] = [];
+      
+      Object.keys(data).forEach((key) => {
+        branchesList.push({
+          id: key,
+          name: data[key].name
+        });
+      });
+      
+      setBranches(branchesList);
+    });
+    
+    return () => unsubscribe();
+  }, []);
 
   // Load students from database
   useEffect(() => {
@@ -138,7 +162,7 @@ const TeacherDashboard = () => {
       // Register student with Firebase Auth
       await studentRegister(regNumber, password, name);
       
-      // Update student with semester and subjects
+      // Update student with semester, branch and subjects
       const userQuery = await get(ref(database, "users"));
       const users = userQuery.val();
       
@@ -153,6 +177,12 @@ const TeacherDashboard = () => {
       if (studentUid) {
         // Add semester and subjects to the student
         await set(ref(database, `students/${studentUid}/semester`), semester);
+        
+        // Add branch to the student
+        if (selectedBranch) {
+          await set(ref(database, `students/${studentUid}/branch`), selectedBranch);
+        }
+        
         if (selectedSubjects.length > 0) {
           await set(ref(database, `students/${studentUid}/subjects`), selectedSubjects);
         }
@@ -168,6 +198,7 @@ const TeacherDashboard = () => {
       setRegNumber("");
       setPassword("");
       setSemester("");
+      setSelectedBranch("");
       setSelectedSubjects([]);
       setIsAddingStudent(false);
     } catch (error: any) {
@@ -360,9 +391,25 @@ const TeacherDashboard = () => {
                   </div>
                   
                   <div className="space-y-2">
+                    <Label htmlFor="branch">Branch</Label>
+                    <Select onValueChange={setSelectedBranch} value={selectedBranch}>
+                      <SelectTrigger id="branch">
+                        <SelectValue placeholder="Select branch" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {branches.map(branch => (
+                          <SelectItem key={branch.id} value={branch.id}>
+                            {branch.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-2">
                     <Label htmlFor="semester">Semester</Label>
                     <Select onValueChange={setSemester} value={semester}>
-                      <SelectTrigger>
+                      <SelectTrigger id="semester">
                         <SelectValue placeholder="Select semester" />
                       </SelectTrigger>
                       <SelectContent>
@@ -632,16 +679,9 @@ const TeacherDashboard = () => {
           </div>
         </TabsContent>
 
-        {/* Exams Tab - Placeholder for now */}
+        {/* Exams Tab */}
         <TabsContent value="exams">
-          <Card>
-            <CardHeader>
-              <CardTitle>Exams</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p>Create and manage exams here. (This section will be implemented later)</p>
-            </CardContent>
-          </Card>
+          <ExamCreator />
         </TabsContent>
 
         {/* Analytics Tab - Placeholder for now */}
