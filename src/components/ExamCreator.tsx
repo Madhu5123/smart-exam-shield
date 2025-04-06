@@ -459,9 +459,9 @@ const ExamCreator: React.FC = () => {
         </Button>
       </div>
 
-      {loading ? (
+      {loading && exams.length === 0 ? (
         <div className="flex justify-center my-8">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-examblue-600"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-slate-600"></div>
         </div>
       ) : exams.length === 0 ? (
         <Card>
