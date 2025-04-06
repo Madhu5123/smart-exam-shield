@@ -26,6 +26,12 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     );
   }
 
+  // Debug information
+  console.log("CurrentUser:", currentUser);
+  console.log("UserRole:", userRole);
+  console.log("AllowedRoles:", allowedRoles);
+  console.log("IsAdminLoggedIn:", isAdminLoggedIn);
+
   // Allow access if admin is logged in and admin role is allowed
   if (isAdminLoggedIn && allowedRoles.includes("admin")) {
     return <>{children}</>;
@@ -37,20 +43,16 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // Debug information
-  console.log("CurrentUser:", currentUser);
-  console.log("UserRole:", userRole);
-  console.log("AllowedRoles:", allowedRoles);
-
-  // Check if user role is allowed - fix the logic to properly check roles
+  // Check if user role is allowed
   if (userRole && allowedRoles.includes(userRole)) {
     // User has allowed role, permit access
     return <>{children}</>;
   } else if (!isAdminLoggedIn) {
-    // Redirect to unauthorized page if not authorized
+    // Only redirect to unauthorized if user is logged in but doesn't have the right role
     return <Navigate to="/unauthorized" replace />;
   }
 
+  // Default fallback - should not reach here with proper logic
   return <>{children}</>;
 };
 
