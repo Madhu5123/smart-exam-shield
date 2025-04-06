@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -120,11 +119,9 @@ const ExamCreator: React.FC = () => {
     },
   ]);
 
-  // Fetch branches and subjects
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch branches
         const branchesRef = ref(database, "branches");
         const branchesSnapshot = await get(branchesRef);
         if (branchesSnapshot.exists()) {
@@ -141,7 +138,6 @@ const ExamCreator: React.FC = () => {
           setBranches(branchesArray);
         }
         
-        // Fetch subjects
         const subjectsRef = ref(database, "subjects");
         const subjectsSnapshot = await get(subjectsRef);
         if (subjectsSnapshot.exists()) {
@@ -172,14 +168,13 @@ const ExamCreator: React.FC = () => {
     fetchData();
   }, [toast]);
 
-  // Fetch existing exams
   useEffect(() => {
-    setLoading(true);
-    const examsRef = ref(database, "exams");
-    
     const fetchExams = async () => {
+      setLoading(true);
       try {
+        const examsRef = ref(database, "exams");
         const snapshot = await get(examsRef);
+        
         if (snapshot.exists()) {
           const data = snapshot.val();
           const examsList: Exam[] = [];
@@ -191,20 +186,24 @@ const ExamCreator: React.FC = () => {
             });
           });
           
-          // Sort by creation date descending
           examsList.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
           
           setExams(examsList);
         }
-        setLoading(false);
       } catch (error) {
         console.error("Error fetching exams:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load exams.",
+          variant: "destructive",
+        });
+      } finally {
         setLoading(false);
       }
     };
     
     fetchExams();
-  }, []);
+  }, [toast]);
 
   const handleAddQuestion = () => {
     const newId = (questions.length + 1).toString();
@@ -306,7 +305,6 @@ const ExamCreator: React.FC = () => {
       return false;
     }
     
-    // Validate questions
     let isValid = true;
     questions.forEach((q, index) => {
       if (!q.text.trim()) {
@@ -339,13 +337,11 @@ const ExamCreator: React.FC = () => {
     try {
       setLoading(true);
       
-      // Format questions for Firebase
       const questionsObj: Record<string, Question> = {};
       questions.forEach((q) => {
         questionsObj[q.id] = q;
       });
       
-      // Get subject name
       const subjectObj = subjects.find((s) => s.id === selectedSubject);
       if (!subjectObj) {
         toast({
@@ -357,7 +353,6 @@ const ExamCreator: React.FC = () => {
         return;
       }
       
-      // Create exam object
       const newExam = {
         title,
         description,
@@ -374,7 +369,6 @@ const ExamCreator: React.FC = () => {
         termsAndConditions,
       };
       
-      // Save to Firebase
       const examsRef = ref(database, "exams");
       const newExamRef = push(examsRef);
       await set(newExamRef, newExam);
@@ -384,7 +378,6 @@ const ExamCreator: React.FC = () => {
         description: "Exam created successfully!",
       });
       
-      // Reset form
       setTitle("");
       setDescription("");
       setSelectedSubject("");
@@ -408,7 +401,6 @@ const ExamCreator: React.FC = () => {
       ]);
       setCreating(false);
       
-      // Refresh exams list
       const updatedExamsSnapshot = await get(examsRef);
       if (updatedExamsSnapshot.exists()) {
         const data = updatedExamsSnapshot.val();
@@ -421,7 +413,6 @@ const ExamCreator: React.FC = () => {
           });
         });
         
-        // Sort by creation date descending
         examsList.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
         
         setExams(examsList);
@@ -438,7 +429,6 @@ const ExamCreator: React.FC = () => {
     }
   };
 
-  // Format date
   const formatDate = (dateString: string) => {
     const options: Intl.DateTimeFormatOptions = {
       year: 'numeric',
@@ -520,7 +510,6 @@ const ExamCreator: React.FC = () => {
         </div>
       )}
 
-      {/* Create Exam Dialog */}
       <Dialog open={creating} onOpenChange={setCreating}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -531,7 +520,6 @@ const ExamCreator: React.FC = () => {
           </DialogHeader>
 
           <div className="space-y-6 py-4">
-            {/* Basic Info */}
             <div className="space-y-4">
               <h3 className="text-lg font-medium">Basic Information</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -635,7 +623,6 @@ const ExamCreator: React.FC = () => {
               </div>
             </div>
 
-            {/* Terms and Conditions */}
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <Label htmlFor="terms">Terms and Conditions</Label>
@@ -660,7 +647,6 @@ const ExamCreator: React.FC = () => {
               />
             </div>
 
-            {/* Questions */}
             <div className="space-y-4">
               <div className="flex justify-between items-center">
                 <h3 className="text-lg font-medium">Questions</h3>
