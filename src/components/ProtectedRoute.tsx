@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth, UserRole } from "../contexts/AuthContext";
 
@@ -17,6 +17,18 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   
   // Check if admin is logged in via localStorage
   const isAdminLoggedIn = localStorage.getItem("adminLoggedIn") === "true";
+  // Check if we're in the middle of student registration
+  const isAddingStudent = sessionStorage.getItem("isAddingStudent") === "true";
+
+  useEffect(() => {
+    // Debug information
+    console.log("CurrentUser:", currentUser);
+    console.log("UserRole:", userRole);
+    console.log("AllowedRoles:", allowedRoles);
+    console.log("IsAdminLoggedIn:", isAdminLoggedIn);
+    console.log("IsAddingStudent:", isAddingStudent);
+    console.log("Current Path:", location.pathname);
+  }, [currentUser, userRole, allowedRoles, isAdminLoggedIn, isAddingStudent, location.pathname]);
 
   if (loading) {
     return (
@@ -26,12 +38,10 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     );
   }
 
-  // Debug information
-  console.log("CurrentUser:", currentUser);
-  console.log("UserRole:", userRole);
-  console.log("AllowedRoles:", allowedRoles);
-  console.log("IsAdminLoggedIn:", isAdminLoggedIn);
-  console.log("Current Path:", location.pathname);
+  // If we're adding a student, allow access to teacher routes temporarily
+  if (isAddingStudent && location.pathname.includes("/dashboard")) {
+    return <>{children}</>;
+  }
 
   // Allow access if admin is logged in and admin role is allowed
   if (isAdminLoggedIn && allowedRoles.includes("admin")) {
@@ -40,31 +50,16 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   // For non-admin users, check Firebase auth
   if (!currentUser && !isAdminLoggedIn) {
-    // Check if we're in the middle of student registration
-    const isAddingStudent = sessionStorage.getItem("isAddingStudent") === "true";
-    if (isAddingStudent && location.pathname.includes("/dashboard")) {
-      // If we're adding a student and on the dashboard, allow access temporarily
-      sessionStorage.removeItem("isAddingStudent"); // Clear the flag after use
-      return <>{children}</>;
-    }
-    
     // Redirect to login page if not logged in
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // Check if user role is allowed - teacher can perform teacher actions without redirection
+  // Check if user role is allowed
   if (userRole && (allowedRoles.includes(userRole) || (userRole === "teacher" && allowedRoles.includes("admin")))) {
     // User has allowed role or is a teacher performing teacher actions, permit access
     return <>{children}</>;
   } else if (!isAdminLoggedIn) {
     // Only redirect to unauthorized if user is logged in but doesn't have the right role
-    // And it's not in the middle of adding a student
-    const isAddingStudent = sessionStorage.getItem("isAddingStudent") === "true";
-    if (isAddingStudent) {
-      sessionStorage.removeItem("isAddingStudent"); // Clear the flag after use
-      return <>{children}</>;
-    }
-    
     return <Navigate to="/unauthorized" replace />;
   }
 

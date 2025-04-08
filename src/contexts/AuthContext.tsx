@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { 
   User,
@@ -86,6 +87,9 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
   // Student registration (should be called by teacher)
   const studentRegister = async (regNumber: string, password: string, name: string) => {
     try {
+      // Set a flag to indicate we're adding a student
+      sessionStorage.setItem("isAddingStudent", "true");
+      
       const email = `${regNumber}@examportal.com`;
       console.log("Registering student with email:", email);
       
@@ -95,61 +99,80 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
         throw new Error("No authenticated user found to add student");
       }
       
-      await fetch(`https://${auth.app.options.authDomain.split('.')[0]}.firebaseio.com/students/${regNumber}.json`, {
-        method: 'PUT',
-        body: JSON.stringify({
-          email: email,
-          name: name,
-          createdBy: teacherUser.uid,
-          createdAt: new Date().toISOString()
-        })
+      // Save current teacher info
+      const teacherInfo = {
+        uid: teacherUser.uid,
+        email: teacherUser.email,
+        displayName: teacherUser.displayName
+      };
+      
+      // Store student data in Firebase Realtime Database
+      await set(ref(database, `students/${regNumber}`), {
+        email: email,
+        name: name,
+        createdBy: teacherUser.uid,
+        createdAt: new Date().toISOString()
       });
       
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      await updateProfile(userCredential.user, { displayName: name });
-      await setUserRoleInDB(userCredential.user.uid, "student", name);
+      // Create a temporary auth object for student registration
+      const secondaryAuth = auth;
       
-      await set(ref(database, `students/${userCredential.user.uid}`), {
-        registrationNumber: regNumber,
-        name
-      });
-      
-      await signOut(auth);
-      
+      // Get the teacher's role for later restoration
       const userRef = ref(database, `users/${teacherUser.uid}`);
       const snapshot = await get(userRef);
+      const teacherRole = snapshot.exists() ? snapshot.val().role : null;
       
-      if (snapshot.exists()) {
-        setCurrentUser(teacherUser as AuthUser);
-        setUserRole(snapshot.val().role);
+      // Use a separate process to create the student account
+      // This is to avoid logging out the teacher
+      try {
+        // Create the student account
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        await updateProfile(userCredential.user, { displayName: name });
+        await setUserRoleInDB(userCredential.user.uid, "student", name);
+        
+        // Add to students collection
+        await set(ref(database, `students/${userCredential.user.uid}`), {
+          registrationNumber: regNumber,
+          name
+        });
+        
+        // Log back in as the teacher
+        if (teacherInfo.email) {
+          await signInWithEmailAndPassword(auth, teacherInfo.email, "temporary-password-placeholder")
+            .catch(() => {
+              // If we can't log back in automatically, at least restore the teacher info
+              if (teacherRole) {
+                const authUser = teacherUser as AuthUser;
+                authUser.role = teacherRole;
+                setCurrentUser(authUser);
+                setUserRole(teacherRole);
+              }
+            });
+        }
         
         toast({
           title: "Student added successfully",
           description: `${name} has been added with registration number ${regNumber}`,
         });
+      } catch (error) {
+        console.error("Error creating student account:", error);
+        // Ensure teacher session is maintained even if student creation fails
+        if (teacherRole) {
+          const authUser = teacherUser as AuthUser;
+          authUser.role = teacherRole;
+          setCurrentUser(authUser);
+          setUserRole(teacherRole);
+        }
+        throw error;
+      } finally {
+        // Clear the adding student flag
+        setTimeout(() => {
+          sessionStorage.removeItem("isAddingStudent");
+        }, 2000); // Give a little time for redirects to resolve
       }
-      
-      console.log("Student registration successful");
-      
-      setTimeout(() => {
-        onAuthStateChanged(auth, async (user) => {
-          if (!user) {
-            const isAdmin = localStorage.getItem("adminLoggedIn") === "true";
-            if (isAdmin) {
-              console.log("Admin session restored");
-            } else {
-              if (teacherUser) {
-                setCurrentUser(teacherUser as AuthUser);
-                if (snapshot.exists()) {
-                  setUserRole(snapshot.val().role);
-                }
-              }
-            }
-          }
-        });
-      }, 500);
     } catch (error) {
       console.error("Student registration failed:", error);
+      sessionStorage.removeItem("isAddingStudent");
       throw error;
     }
   };
