@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { 
   User,
@@ -58,7 +57,6 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
       name
     };
     
-    // Add branch if provided
     if (branch) {
       userData.branch = branch;
     }
@@ -88,57 +86,68 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
   // Student registration (should be called by teacher)
   const studentRegister = async (regNumber: string, password: string, name: string) => {
     try {
-      // For students, use registration number as email with domain
       const email = `${regNumber}@examportal.com`;
       console.log("Registering student with email:", email);
       
-      // Temporarily store the current user credentials
-      const currentAuthUser = auth.currentUser;
-      let temporarySignOut = false;
+      const teacherUser = auth.currentUser;
       
-      // Only sign out temporarily if there's a current user
-      if (currentAuthUser) {
-        temporarySignOut = true;
-        await signOut(auth);
+      if (!teacherUser) {
+        throw new Error("No authenticated user found to add student");
       }
       
-      // Create the student account
+      await fetch(`https://${auth.app.options.authDomain.split('.')[0]}.firebaseio.com/students/${regNumber}.json`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          email: email,
+          name: name,
+          createdBy: teacherUser.uid,
+          createdAt: new Date().toISOString()
+        })
+      });
+      
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       await updateProfile(userCredential.user, { displayName: name });
       await setUserRoleInDB(userCredential.user.uid, "student", name);
       
-      // Store additional student info
       await set(ref(database, `students/${userCredential.user.uid}`), {
         registrationNumber: regNumber,
         name
       });
       
-      // Sign out the student account
       await signOut(auth);
       
-      // If there was a user before, sign them back in
-      if (temporarySignOut && currentAuthUser) {
-        try {
-          // Get the user's email from their UID
-          const userRef = ref(database, `users/${currentAuthUser.uid}`);
-          const snapshot = await get(userRef);
-          
-          if (snapshot.exists()) {
-            // User was previously logged in, toast success message
-            toast({
-              title: "Student added successfully",
-              description: `${name} has been added with registration number ${regNumber}`,
-            });
-          }
-          
-          // Re-authenticate the original user if we have their email/password
-          // For now, we'll rely on the app to redirect them to login if needed
-        } catch (error) {
-          console.error("Error re-authenticating after student registration:", error);
-        }
+      const userRef = ref(database, `users/${teacherUser.uid}`);
+      const snapshot = await get(userRef);
+      
+      if (snapshot.exists()) {
+        setCurrentUser(teacherUser as AuthUser);
+        setUserRole(snapshot.val().role);
+        
+        toast({
+          title: "Student added successfully",
+          description: `${name} has been added with registration number ${regNumber}`,
+        });
       }
       
-      console.log("Student registration successful:", userCredential.user.uid);
+      console.log("Student registration successful");
+      
+      setTimeout(() => {
+        onAuthStateChanged(auth, async (user) => {
+          if (!user) {
+            const isAdmin = localStorage.getItem("adminLoggedIn") === "true";
+            if (isAdmin) {
+              console.log("Admin session restored");
+            } else {
+              if (teacherUser) {
+                setCurrentUser(teacherUser as AuthUser);
+                if (snapshot.exists()) {
+                  setUserRole(snapshot.val().role);
+                }
+              }
+            }
+          }
+        });
+      }, 500);
     } catch (error) {
       console.error("Student registration failed:", error);
       throw error;
@@ -148,9 +157,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
   // Login
   const login = async (email: string, password: string) => {
     try {
-      // First, check if it's a registration number login (student)
       if (!email.includes('@')) {
-        // Assume it's a registration number, append domain
         email = `${email}@examportal.com`;
       }
       
@@ -164,14 +171,10 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
 
   // Logout
   const logout = async () => {
-    // Clear admin login state if exists
     localStorage.removeItem("adminLoggedIn");
-    
-    // For Firebase authenticated users
     return signOut(auth);
   };
 
-  // Subscribe to auth state changes
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
@@ -179,7 +182,6 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
           const role = await getUserRoleFromDB(user.uid);
           console.log("User authenticated:", user.uid, "with role:", role);
           
-          // Add role to user object
           const authUser = user as AuthUser;
           authUser.role = role;
           

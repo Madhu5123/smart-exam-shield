@@ -31,6 +31,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   console.log("UserRole:", userRole);
   console.log("AllowedRoles:", allowedRoles);
   console.log("IsAdminLoggedIn:", isAdminLoggedIn);
+  console.log("Current Path:", location.pathname);
 
   // Allow access if admin is logged in and admin role is allowed
   if (isAdminLoggedIn && allowedRoles.includes("admin")) {
@@ -39,6 +40,14 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   // For non-admin users, check Firebase auth
   if (!currentUser && !isAdminLoggedIn) {
+    // Check if we're in the middle of student registration
+    const isAddingStudent = sessionStorage.getItem("isAddingStudent") === "true";
+    if (isAddingStudent && location.pathname.includes("/dashboard")) {
+      // If we're adding a student and on the dashboard, allow access temporarily
+      sessionStorage.removeItem("isAddingStudent"); // Clear the flag after use
+      return <>{children}</>;
+    }
+    
     // Redirect to login page if not logged in
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
@@ -49,6 +58,13 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <>{children}</>;
   } else if (!isAdminLoggedIn) {
     // Only redirect to unauthorized if user is logged in but doesn't have the right role
+    // And it's not in the middle of adding a student
+    const isAddingStudent = sessionStorage.getItem("isAddingStudent") === "true";
+    if (isAddingStudent) {
+      sessionStorage.removeItem("isAddingStudent"); // Clear the flag after use
+      return <>{children}</>;
+    }
+    
     return <Navigate to="/unauthorized" replace />;
   }
 
