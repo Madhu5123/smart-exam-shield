@@ -11,74 +11,152 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { ref, onValue } from "firebase/database";
+import { ref, onValue, get, query, orderByChild, equalTo } from "firebase/database";
 import { database } from "@/lib/firebase";
 
 interface Exam {
   id: string;
   title: string;
   subject: string;
+  subjectId: string;
   duration: number; // in minutes
-  status: "upcoming" | "available" | "completed";
+  totalMarks: number;
+  passingMarks: number;
+  startTime: string;
+  endTime: string;
+  instructions: string;
+  randomizeQuestions: boolean;
+  semester: string;
+  status?: "upcoming" | "available" | "completed";
   score?: number;
-  totalQuestions: number;
-  startTime?: string;
-  endTime?: string;
+  questions: any[];
+  createdBy: string;
+  createdAt: string;
+}
+
+interface StudentExamResult {
+  examId: string;
+  studentId: string;
+  score: number;
+  totalMarks: number;
+  completedAt: string;
 }
 
 const StudentDashboard = () => {
   const [exams, setExams] = useState<Exam[]>([]);
+  const [results, setResults] = useState<StudentExamResult[]>([]);
   const [loading, setLoading] = useState(true);
   const { currentUser } = useAuth();
+  const { toast } = useToast();
 
-  // Placeholder for exams data
+  // Fetch student's semester and subjects
   useEffect(() => {
-    // In a real application, we would fetch exams from the database
-    // For now, we'll use some dummy data
-    
-    // Simulating data loading
-    setTimeout(() => {
-      const dummyExams: Exam[] = [
-        {
-          id: "exam1",
-          title: "Midterm Examination",
-          subject: "Mathematics",
-          duration: 90,
-          status: "upcoming",
-          totalQuestions: 50,
-          startTime: "2025-04-10T09:00:00",
-          endTime: "2025-04-10T10:30:00"
-        },
-        {
-          id: "exam2",
-          title: "Quiz 2",
-          subject: "Physics",
-          duration: 30,
-          status: "available",
-          totalQuestions: 20,
-          startTime: "2025-04-05T14:00:00",
-          endTime: "2025-04-05T14:30:00"
-        },
-        {
-          id: "exam3",
-          title: "Final Exam",
-          subject: "Chemistry",
-          duration: 120,
-          status: "completed",
-          score: 85,
-          totalQuestions: 75,
-          startTime: "2025-03-25T10:00:00",
-          endTime: "2025-03-25T12:00:00"
-        }
-      ];
-      
-      setExams(dummyExams);
-      setLoading(false);
-    }, 1500);
-  }, []);
+    if (!currentUser) return;
 
-  // Helper function to format date
+    const studentRef = ref(database, `students/${currentUser.uid}`);
+    
+    const unsubscribe = onValue(studentRef, (snapshot) => {
+      const studentData = snapshot.val();
+      if (!studentData) {
+        setLoading(false);
+        return;
+      }
+      
+      // Fetch exams based on student's semester and subjects
+      fetchExams(studentData.semester, studentData.subjects || []);
+    });
+    
+    return () => unsubscribe();
+  }, [currentUser]);
+
+  // Fetch student's completed exams
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const resultsRef = ref(database, 'examResults');
+    
+    const unsubscribe = onValue(resultsRef, (snapshot) => {
+      const data = snapshot.val();
+      if (!data) return;
+      
+      const studentResults: StudentExamResult[] = [];
+      
+      Object.keys(data).forEach((key) => {
+        if (data[key].studentId === currentUser.uid) {
+          studentResults.push({
+            ...data[key],
+            id: key
+          });
+        }
+      });
+      
+      setResults(studentResults);
+    });
+    
+    return () => unsubscribe();
+  }, [currentUser]);
+
+  const fetchExams = async (semester: string, subjects: string[]) => {
+    try {
+      // Get all exams
+      const examsRef = ref(database, "exams");
+      const snapshot = await get(examsRef);
+      const data = snapshot.val();
+      
+      if (!data) {
+        setLoading(false);
+        return;
+      }
+      
+      const now = new Date();
+      const allExams: Exam[] = [];
+      
+      Object.keys(data).forEach((key) => {
+        const exam = {
+          id: key,
+          ...data[key]
+        };
+        
+        // Only include exams from the student's semester or subjects
+        if (exam.semester === semester || subjects.includes(exam.subjectId)) {
+          // Determine exam status
+          const startTime = new Date(exam.startTime);
+          const endTime = new Date(exam.endTime);
+          
+          // Check if exam is completed by the student
+          const isCompleted = results.some(result => result.examId === exam.id);
+          
+          if (isCompleted) {
+            exam.status = "completed";
+            // Get score from results
+            const result = results.find(result => result.examId === exam.id);
+            if (result) {
+              exam.score = (result.score / result.totalMarks) * 100;
+            }
+          } else if (now < startTime) {
+            exam.status = "upcoming";
+          } else if (now >= startTime && now <= endTime) {
+            exam.status = "available";
+          } else {
+            // Exam time has passed without completion
+            exam.status = "upcoming"; // We'll hide it for now
+          }
+          
+          allExams.push(exam);
+        }
+      });
+      
+      setExams(allExams);
+      setLoading(false);
+    } catch (error) {
+      console.error("Error fetching exams:", error);
+      setLoading(false);
+    }
+  };
+
+  // Format date for display
   const formatDate = (dateString: string) => {
     const options: Intl.DateTimeFormatOptions = {
       year: 'numeric',
@@ -107,6 +185,10 @@ const StudentDashboard = () => {
   const startExam = (examId: string) => {
     // In a real application, we would navigate to the exam page
     console.log(`Starting exam: ${examId}`);
+    toast({
+      title: "Starting Exam",
+      description: "Redirecting you to the exam page...",
+    });
     // navigate(`/exam/${examId}`);
   };
 
@@ -201,7 +283,7 @@ const StudentDashboard = () => {
               <CardHeader className="pb-2">
                 <div className="flex justify-between items-start">
                   <CardTitle>{exam.title}</CardTitle>
-                  {getStatusBadge(exam.status)}
+                  {getStatusBadge(exam.status || "upcoming")}
                 </div>
               </CardHeader>
               <CardContent className="pb-2">
@@ -222,7 +304,7 @@ const StudentDashboard = () => {
                 {exam.status === "completed" && exam.score !== undefined && (
                   <div className="mt-3">
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm font-medium">Score: {exam.score}%</span>
+                      <span className="text-sm font-medium">Score: {exam.score.toFixed(1)}%</span>
                     </div>
                     <Progress value={exam.score} />
                   </div>

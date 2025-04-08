@@ -38,6 +38,19 @@ const App = () => (
               }
             />
             
+            {/* Exam Route */}
+            <Route
+              path="/exam/:examId"
+              element={
+                <ProtectedRoute allowedRoles={["student"]}>
+                  <div>
+                    <h1>Exam Page</h1>
+                    <p>This page will show the actual exam interface</p>
+                  </div>
+                </ProtectedRoute>
+              }
+            />
+            
             {/* Catch-all route */}
             <Route path="*" element={<NotFound />} />
           </Routes>
