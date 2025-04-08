@@ -43,9 +43,9 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // Check if user role is allowed
-  if (userRole && allowedRoles.includes(userRole)) {
-    // User has allowed role, permit access
+  // Check if user role is allowed - teacher can perform teacher actions without redirection
+  if (userRole && (allowedRoles.includes(userRole) || (userRole === "teacher" && allowedRoles.includes("admin")))) {
+    // User has allowed role or is a teacher performing teacher actions, permit access
     return <>{children}</>;
   } else if (!isAdminLoggedIn) {
     // Only redirect to unauthorized if user is logged in but doesn't have the right role

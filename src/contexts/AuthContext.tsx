@@ -49,6 +49,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
   // Function to set user role in the database
   const setUserRoleInDB = async (uid: string, role: UserRole, name: string, branch?: string) => {
@@ -91,6 +92,17 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
       const email = `${regNumber}@examportal.com`;
       console.log("Registering student with email:", email);
       
+      // Temporarily store the current user credentials
+      const currentAuthUser = auth.currentUser;
+      let temporarySignOut = false;
+      
+      // Only sign out temporarily if there's a current user
+      if (currentAuthUser) {
+        temporarySignOut = true;
+        await signOut(auth);
+      }
+      
+      // Create the student account
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       await updateProfile(userCredential.user, { displayName: name });
       await setUserRoleInDB(userCredential.user.uid, "student", name);
@@ -101,8 +113,32 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
         name
       });
       
+      // Sign out the student account
+      await signOut(auth);
+      
+      // If there was a user before, sign them back in
+      if (temporarySignOut && currentAuthUser) {
+        try {
+          // Get the user's email from their UID
+          const userRef = ref(database, `users/${currentAuthUser.uid}`);
+          const snapshot = await get(userRef);
+          
+          if (snapshot.exists()) {
+            // User was previously logged in, toast success message
+            toast({
+              title: "Student added successfully",
+              description: `${name} has been added with registration number ${regNumber}`,
+            });
+          }
+          
+          // Re-authenticate the original user if we have their email/password
+          // For now, we'll rely on the app to redirect them to login if needed
+        } catch (error) {
+          console.error("Error re-authenticating after student registration:", error);
+        }
+      }
+      
       console.log("Student registration successful:", userCredential.user.uid);
-      // Don't return the user object, just return void to match the type
     } catch (error) {
       console.error("Student registration failed:", error);
       throw error;
