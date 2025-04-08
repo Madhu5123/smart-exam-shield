@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,7 +29,8 @@ import {
 } from "@/components/ui/dialog";
 import { get, ref, set, remove, onValue, push } from "firebase/database";
 import { database } from "@/lib/firebase";
-import ExamCreator from "@/components/ExamCreator";
+import { Form, FormField, FormItem, FormLabel, FormControl, FormDescription, FormMessage } from "@/components/ui/form";
+import { useForm } from "react-hook-form";
 
 interface Student {
   id: string;
@@ -57,34 +59,11 @@ const TeacherDashboard = () => {
   const [semester, setSemester] = useState("");
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
-  const [branches, setBranches] = useState<{id: string, name: string}[]>([]);
-  const [selectedBranch, setSelectedBranch] = useState("");
   
   const { studentRegister } = useAuth();
   const { toast } = useToast();
 
-  useEffect(() => {
-    const branchesRef = ref(database, "branches");
-    
-    const unsubscribe = onValue(branchesRef, (snapshot) => {
-      const data = snapshot.val();
-      if (!data) return;
-      
-      const branchesList: {id: string, name: string}[] = [];
-      
-      Object.keys(data).forEach((key) => {
-        branchesList.push({
-          id: key,
-          name: data[key].name
-        });
-      });
-      
-      setBranches(branchesList);
-    });
-    
-    return () => unsubscribe();
-  }, []);
-
+  // Load students from database
   useEffect(() => {
     const studentsRef = ref(database, "students");
     
@@ -110,6 +89,7 @@ const TeacherDashboard = () => {
     return () => unsubscribe();
   }, []);
 
+  // Load subjects from database
   useEffect(() => {
     const subjectsRef = ref(database, "subjects");
     
@@ -140,6 +120,7 @@ const TeacherDashboard = () => {
     try {
       setLoading(true);
       
+      // Check if registration number already exists
       const studentsRef = ref(database, "students");
       const snapshot = await get(studentsRef);
       const data = snapshot.val();
@@ -154,11 +135,14 @@ const TeacherDashboard = () => {
         }
       }
       
+      // Register student with Firebase Auth
       await studentRegister(regNumber, password, name);
       
+      // Update student with semester and subjects
       const userQuery = await get(ref(database, "users"));
       const users = userQuery.val();
       
+      // Find the student's UID
       let studentUid = null;
       Object.keys(users).forEach(uid => {
         if (users[uid].role === 'student' && users[uid].name === name) {
@@ -167,12 +151,8 @@ const TeacherDashboard = () => {
       });
       
       if (studentUid) {
+        // Add semester and subjects to the student
         await set(ref(database, `students/${studentUid}/semester`), semester);
-        
-        if (selectedBranch) {
-          await set(ref(database, `students/${studentUid}/branch`), selectedBranch);
-        }
-        
         if (selectedSubjects.length > 0) {
           await set(ref(database, `students/${studentUid}/subjects`), selectedSubjects);
         }
@@ -183,11 +163,11 @@ const TeacherDashboard = () => {
         description: `${name} has been added with registration number ${regNumber}.`,
       });
       
+      // Reset form
       setName("");
       setRegNumber("");
       setPassword("");
       setSemester("");
-      setSelectedBranch("");
       setSelectedSubjects([]);
       setIsAddingStudent(false);
     } catch (error: any) {
@@ -213,6 +193,7 @@ const TeacherDashboard = () => {
     try {
       setLoading(true);
       
+      // Check if subject code already exists
       const subjectsRef = ref(database, "subjects");
       const snapshot = await get(subjectsRef);
       const data = snapshot.val();
@@ -227,6 +208,7 @@ const TeacherDashboard = () => {
         }
       }
       
+      // Add subject to database
       const newSubjectRef = push(ref(database, "subjects"));
       await set(newSubjectRef, {
         name: subjectName,
@@ -239,6 +221,7 @@ const TeacherDashboard = () => {
         description: `${subjectName} has been added with code ${subjectCode}.`,
       });
       
+      // Reset form
       form.reset();
       setIsAddingSubject(false);
     } catch (error: any) {
@@ -256,6 +239,10 @@ const TeacherDashboard = () => {
   const handleDeleteStudent = async (studentId: string, studentName: string) => {
     if (window.confirm(`Are you sure you want to delete ${studentName}?`)) {
       try {
+        // In a real app, you'd need to delete the user from Firebase Auth as well
+        // This would typically be done through a Cloud Function for security
+        
+        // For now, we'll just remove from the database
         await remove(ref(database, `students/${studentId}`));
         await remove(ref(database, `users/${studentId}`));
         
@@ -326,6 +313,7 @@ const TeacherDashboard = () => {
           </TabsTrigger>
         </TabsList>
 
+        {/* Students Tab */}
         <TabsContent value="students" className="space-y-4">
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-semibold">Manage Students</h2>
@@ -372,25 +360,9 @@ const TeacherDashboard = () => {
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="branch">Branch</Label>
-                    <Select onValueChange={setSelectedBranch} value={selectedBranch}>
-                      <SelectTrigger id="branch">
-                        <SelectValue placeholder="Select branch" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {branches.map(branch => (
-                          <SelectItem key={branch.id} value={branch.id}>
-                            {branch.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div className="space-y-2">
                     <Label htmlFor="semester">Semester</Label>
                     <Select onValueChange={setSemester} value={semester}>
-                      <SelectTrigger id="semester">
+                      <SelectTrigger>
                         <SelectValue placeholder="Select semester" />
                       </SelectTrigger>
                       <SelectContent>
@@ -474,6 +446,7 @@ const TeacherDashboard = () => {
             </Dialog>
           </div>
 
+          {/* Students List */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {students.length === 0 ? (
               <Card className="col-span-full">
@@ -534,6 +507,7 @@ const TeacherDashboard = () => {
           </div>
         </TabsContent>
 
+        {/* Subjects Tab */}
         <TabsContent value="subjects" className="space-y-4">
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-semibold">Manage Subjects</h2>
@@ -615,6 +589,7 @@ const TeacherDashboard = () => {
             </Dialog>
           </div>
 
+          {/* Subjects List */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {subjects.length === 0 ? (
               <Card className="col-span-full">
@@ -657,10 +632,19 @@ const TeacherDashboard = () => {
           </div>
         </TabsContent>
 
-        <TabsContent value="exams" className="mt-6">
-          <ExamCreator />
+        {/* Exams Tab - Placeholder for now */}
+        <TabsContent value="exams">
+          <Card>
+            <CardHeader>
+              <CardTitle>Exams</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p>Create and manage exams here. (This section will be implemented later)</p>
+            </CardContent>
+          </Card>
         </TabsContent>
 
+        {/* Analytics Tab - Placeholder for now */}
         <TabsContent value="analytics">
           <Card>
             <CardHeader>

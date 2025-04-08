@@ -13,7 +13,6 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Unauthorized from "./pages/Unauthorized";
 import NotFound from "./pages/NotFound";
-import Exam from "./pages/Exam";
 
 const queryClient = new QueryClient();
 
@@ -35,15 +34,6 @@ const App = () => (
               element={
                 <ProtectedRoute allowedRoles={["admin", "teacher", "student"]}>
                   <Dashboard />
-                </ProtectedRoute>
-              }
-            />
-            
-            <Route
-              path="/exam/:examId"
-              element={
-                <ProtectedRoute allowedRoles={["student"]}>
-                  <Exam />
                 </ProtectedRoute>
               }
             />

@@ -5,15 +5,15 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/componen
 import {
   BookOpen,
   Clock,
+  AlertTriangle,
   CheckCircle,
   CalendarCheck
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/contexts/AuthContext";
-import { ref, onValue, get } from "firebase/database";
+import { ref, onValue } from "firebase/database";
 import { database } from "@/lib/firebase";
-import { useNavigate } from "react-router-dom";
 
 interface Exam {
   id: string;
@@ -25,104 +25,58 @@ interface Exam {
   totalQuestions: number;
   startTime?: string;
   endTime?: string;
-  branch?: string;
-  semester?: string;
-  createdBy?: string;
 }
 
 const StudentDashboard = () => {
   const [exams, setExams] = useState<Exam[]>([]);
   const [loading, setLoading] = useState(true);
   const { currentUser } = useAuth();
-  const navigate = useNavigate();
 
-  // Fetch exams data from Firebase
+  // Placeholder for exams data
   useEffect(() => {
-    if (!currentUser) return;
-
-    const fetchStudentInfo = async () => {
-      try {
-        // First get student's branch and semester
-        const studentRef = ref(database, `students/${currentUser.uid}`);
-        const studentSnapshot = await get(studentRef);
-        
-        if (!studentSnapshot.exists()) {
-          console.error("Student data not found");
-          setLoading(false);
-          return;
-        }
-        
-        const studentData = studentSnapshot.val();
-        const studentBranch = studentData.branch || "";
-        const studentSemester = studentData.semester || "";
-        
-        // Then fetch all exams
-        const examsRef = ref(database, "exams");
-        const unsubscribe = onValue(examsRef, (snapshot) => {
-          const data = snapshot.val();
-          const examsList: Exam[] = [];
-          
-          if (data) {
-            Object.keys(data).forEach((key) => {
-              const exam = data[key];
-              // Only include exams for this student's branch and semester
-              if ((exam.branch === studentBranch || !exam.branch) && 
-                  (exam.semester === studentSemester || !exam.semester)) {
-                
-                // Determine exam status
-                let status: "upcoming" | "available" | "completed" = "upcoming";
-                const now = new Date();
-                const startTime = exam.startTime ? new Date(exam.startTime) : null;
-                const endTime = exam.endTime ? new Date(exam.endTime) : null;
-                
-                if (startTime && endTime) {
-                  if (now < startTime) {
-                    status = "upcoming";
-                  } else if (now >= startTime && now <= endTime) {
-                    status = "available";
-                  } else {
-                    status = "completed";
-                  }
-                }
-                
-                // Check if student has already completed this exam
-                let score = undefined;
-                if (exam.results && exam.results[currentUser.uid]) {
-                  status = "completed";
-                  score = exam.results[currentUser.uid].score;
-                }
-                
-                examsList.push({
-                  id: key,
-                  title: exam.title,
-                  subject: exam.subject,
-                  duration: exam.duration,
-                  status: status,
-                  totalQuestions: exam.questions ? Object.keys(exam.questions).length : 0,
-                  startTime: exam.startTime,
-                  endTime: exam.endTime,
-                  branch: exam.branch,
-                  semester: exam.semester,
-                  score: score,
-                  createdBy: exam.createdBy
-                });
-              }
-            });
-          }
-          
-          setExams(examsList);
-          setLoading(false);
-        });
-        
-        return () => unsubscribe();
-      } catch (error) {
-        console.error("Error fetching exams:", error);
-        setLoading(false);
-      }
-    };
+    // In a real application, we would fetch exams from the database
+    // For now, we'll use some dummy data
     
-    fetchStudentInfo();
-  }, [currentUser]);
+    // Simulating data loading
+    setTimeout(() => {
+      const dummyExams: Exam[] = [
+        {
+          id: "exam1",
+          title: "Midterm Examination",
+          subject: "Mathematics",
+          duration: 90,
+          status: "upcoming",
+          totalQuestions: 50,
+          startTime: "2025-04-10T09:00:00",
+          endTime: "2025-04-10T10:30:00"
+        },
+        {
+          id: "exam2",
+          title: "Quiz 2",
+          subject: "Physics",
+          duration: 30,
+          status: "available",
+          totalQuestions: 20,
+          startTime: "2025-04-05T14:00:00",
+          endTime: "2025-04-05T14:30:00"
+        },
+        {
+          id: "exam3",
+          title: "Final Exam",
+          subject: "Chemistry",
+          duration: 120,
+          status: "completed",
+          score: 85,
+          totalQuestions: 75,
+          startTime: "2025-03-25T10:00:00",
+          endTime: "2025-03-25T12:00:00"
+        }
+      ];
+      
+      setExams(dummyExams);
+      setLoading(false);
+    }, 1500);
+  }, []);
 
   // Helper function to format date
   const formatDate = (dateString: string) => {
@@ -151,7 +105,9 @@ const StudentDashboard = () => {
 
   // Navigate to exam
   const startExam = (examId: string) => {
-    navigate(`/exam/${examId}`);
+    // In a real application, we would navigate to the exam page
+    console.log(`Starting exam: ${examId}`);
+    // navigate(`/exam/${examId}`);
   };
 
   return (
