@@ -46,8 +46,6 @@ const Unauthorized = () => {
           animate={{ scale: 1, opacity: 1 }}
           transition={{ delay: 0.2, duration: 0.5 }}
           variants={container}
-          initial="hidden"
-          animate="show"
         >
           <motion.div
             className="mx-auto w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mb-6"
