@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
@@ -70,10 +69,10 @@ const Login = () => {
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="w-full max-w-md"
+        className="w-full max-w-md flex flex-col items-center"
       >
         <motion.div 
-          className="mb-10 text-center"
+          className="mb-10 text-center flex flex-col items-center"
           initial={{ scale: 0.9 }}
           animate={{ scale: 1 }}
           transition={{ duration: 0.5, delay: 0.2 }}
@@ -93,6 +92,7 @@ const Login = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.3 }}
+          className="w-full"
         >
           <Card className="w-full shadow-lg border-examblue-100 backdrop-blur-sm bg-white/90">
             <CardHeader className="space-y-1">

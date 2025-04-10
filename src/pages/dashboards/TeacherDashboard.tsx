@@ -22,7 +22,9 @@ import {
   Pencil,
   Upload,
   Save,
-  X
+  X,
+  Search,
+  Filter
 } from "lucide-react";
 import { 
   Dialog,
@@ -103,6 +105,8 @@ const TeacherDashboard = () => {
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [photoURL, setPhotoURL] = useState("");
   const [openEditDialog, setOpenEditDialog] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [semesterFilter, setSemesterFilter] = useState("");
 
   useEffect(() => {
     const studentsRef = ref(database, "students");
@@ -156,6 +160,16 @@ const TeacherDashboard = () => {
       unsubscribeExams();
     };
   }, []);
+
+  const filteredStudents = students.filter(student => {
+    const matchesSearch = searchQuery === "" || 
+      student.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      student.registrationNumber.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const matchesSemester = semesterFilter === "" || student.semester === semesterFilter;
+    
+    return matchesSearch && matchesSemester;
+  });
 
   const handleAddStudent = async () => {
     if (!studentName || !registrationNumber || !semester) {
@@ -539,59 +553,74 @@ const TeacherDashboard = () => {
             initial="hidden"
             animate="visible"
           >
-            {students.map((student) => (
-              <motion.div key={student.id} variants={itemVariants}>
-                <Card className="overflow-hidden bg-white border-examblue-50 hover:shadow-lg transition-shadow duration-300">
-                  <div className="bg-gradient-to-r from-examblue-500 to-examblue-600 p-4 text-white flex justify-between items-center">
-                    <h3 className="font-semibold truncate">{student.name}</h3>
-                    <div className="flex gap-2">
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        onClick={() => handleEditStudent(student)}
-                        className="text-white hover:bg-examblue-400 hover:text-white"
-                      >
-                        <Pencil className="h-4 w-4" />
-                        <span className="sr-only">Edit</span>
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        onClick={() => handleDeleteStudent(student.id)}
-                        className="text-white hover:bg-examblue-400 hover:text-white"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                        <span className="sr-only">Delete</span>
-                      </Button>
-                    </div>
-                  </div>
-                  <CardContent className="p-4 flex items-center gap-4">
-                    <Avatar className="h-16 w-16 border-2 border-examblue-100">
-                      {student.photoURL ? (
-                        <AvatarImage src={student.photoURL} alt={student.name} />
-                      ) : (
-                        <AvatarFallback className="bg-examblue-100 text-examblue-700">
-                          {student.name.split(" ").map(n => n[0]).join("").toUpperCase()}
-                        </AvatarFallback>
-                      )}
-                    </Avatar>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">ID: {student.registrationNumber}</p>
-                      <p className="text-sm text-gray-500">Semester: {student.semester}</p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        Subjects: {student.subjects ? 
-                          subjects
-                            .filter(s => student.subjects?.includes(s.id))
-                            .map(s => s.code)
-                            .join(", ") : 
-                          "None"
-                        }
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
+            {filteredStudents.length === 0 ? (
+              <motion.div 
+                className="col-span-full p-8 text-center bg-white rounded-lg border border-dashed border-examblue-200"
+                variants={itemVariants}
+              >
+                <Users className="h-12 w-12 mx-auto text-examblue-300" />
+                <h3 className="mt-4 text-lg font-medium text-examblue-700">No students found</h3>
+                <p className="mt-2 text-sm text-gray-500">
+                  {searchQuery || semesterFilter 
+                    ? "Try adjusting your search or filter criteria"
+                    : "Add your first student to get started"}
+                </p>
               </motion.div>
-            ))}
+            ) : (
+              filteredStudents.map((student) => (
+                <motion.div key={student.id} variants={itemVariants}>
+                  <Card className="overflow-hidden bg-white border-examblue-50 hover:shadow-lg transition-shadow duration-300">
+                    <div className="bg-gradient-to-r from-examblue-500 to-examblue-600 p-4 text-white flex justify-between items-center">
+                      <h3 className="font-semibold truncate">{student.name}</h3>
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={() => handleEditStudent(student)}
+                          className="text-white hover:bg-examblue-400 hover:text-white"
+                        >
+                          <Pencil className="h-4 w-4" />
+                          <span className="sr-only">Edit</span>
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={() => handleDeleteStudent(student.id)}
+                          className="text-white hover:bg-examblue-400 hover:text-white"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          <span className="sr-only">Delete</span>
+                        </Button>
+                      </div>
+                    </div>
+                    <CardContent className="p-4 flex items-center gap-4">
+                      <Avatar className="h-16 w-16 border-2 border-examblue-100">
+                        {student.photoURL ? (
+                          <AvatarImage src={student.photoURL} alt={student.name} />
+                        ) : (
+                          <AvatarFallback className="bg-examblue-100 text-examblue-700">
+                            {student.name.split(" ").map(n => n[0]).join("").toUpperCase()}
+                          </AvatarFallback>
+                        )}
+                      </Avatar>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">ID: {student.registrationNumber}</p>
+                        <p className="text-sm text-gray-500">Semester: {student.semester}</p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Subjects: {student.subjects ? 
+                            subjects
+                              .filter(s => student.subjects?.includes(s.id))
+                              .map(s => s.code)
+                              .join(", ") : 
+                            "None"
+                          }
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))
+            )}
           </motion.div>
         </TabsContent>
 
