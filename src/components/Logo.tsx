@@ -1,6 +1,7 @@
 
 import React from "react";
 import { Shield } from "lucide-react";
+import { motion } from "framer-motion";
 
 interface LogoProps {
   size?: "sm" | "md" | "lg";
@@ -26,14 +27,28 @@ const Logo: React.FC<LogoProps> = ({
   };
 
   return (
-    <div className={`flex items-center gap-2 ${className}`}>
-      <Shield className={`text-examblue-600 ${sizeClasses[size]}`} />
+    <motion.div 
+      className={`flex items-center gap-2 ${className}`}
+      initial={{ opacity: 0, y: -10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
+    >
+      <motion.div
+        whileHover={{ rotate: 15, scale: 1.1 }}
+        transition={{ type: "spring", stiffness: 300 }}
+      >
+        <Shield className={`text-examblue-600 ${sizeClasses[size]}`} />
+      </motion.div>
       {withText && (
-        <span className={`font-bold ${textSizeClasses[size]} text-examblue-800`}>
-          SmartExam<span className="text-examblue-500">Shield</span>
-        </span>
+        <motion.span 
+          className={`font-bold ${textSizeClasses[size]} text-examblue-800`}
+          whileHover={{ scale: 1.03 }}
+          transition={{ duration: 0.2 }}
+        >
+          SmartExam<span className="text-examblue-500">Portal</span>
+        </motion.span>
       )}
-    </div>
+    </motion.div>
   );
 };
 
