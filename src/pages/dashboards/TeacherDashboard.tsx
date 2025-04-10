@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -87,7 +86,7 @@ interface Exam {
 }
 
 const TeacherDashboard = () => {
-  const { user } = useAuth();
+  const { currentUser } = useAuth();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("students");
   const [students, setStudents] = useState<Student[]>([]);
@@ -105,11 +104,8 @@ const TeacherDashboard = () => {
   const [photoURL, setPhotoURL] = useState("");
   const [openEditDialog, setOpenEditDialog] = useState(false);
 
-  // Load students and subjects from Firebase on component mount
   useEffect(() => {
-    // Reference to students in the database
     const studentsRef = ref(database, "students");
-    // Listen for changes to the students
     const unsubscribeStudents = onValue(studentsRef, (snapshot) => {
       const data = snapshot.val();
       const loadedStudents: Student[] = [];
@@ -124,9 +120,7 @@ const TeacherDashboard = () => {
       setStudents(loadedStudents);
     });
 
-    // Reference to subjects in the database
     const subjectsRef = ref(database, "subjects");
-    // Listen for changes to the subjects
     const unsubscribeSubjects = onValue(subjectsRef, (snapshot) => {
       const data = snapshot.val();
       const loadedSubjects: Subject[] = [];
@@ -141,9 +135,7 @@ const TeacherDashboard = () => {
       setSubjects(loadedSubjects);
     });
 
-    // Reference to exams in the database
     const examsRef = ref(database, "exams");
-    // Listen for changes to the exams
     const unsubscribeExams = onValue(examsRef, (snapshot) => {
       const data = snapshot.val();
       const loadedExams: Exam[] = [];
@@ -158,7 +150,6 @@ const TeacherDashboard = () => {
       setExams(loadedExams);
     });
 
-    // Cleanup subscriptions
     return () => {
       unsubscribeStudents();
       unsubscribeSubjects();
@@ -166,9 +157,7 @@ const TeacherDashboard = () => {
     };
   }, []);
 
-  // Handle adding a student
   const handleAddStudent = async () => {
-    // Validation
     if (!studentName || !registrationNumber || !semester) {
       toast({
         title: "Missing required fields",
@@ -178,7 +167,6 @@ const TeacherDashboard = () => {
       return;
     }
 
-    // Check if registration number is already used
     const existingStudent = students.find(s => s.registrationNumber === registrationNumber);
     if (existingStudent) {
       toast({
@@ -189,11 +177,8 @@ const TeacherDashboard = () => {
       return;
     }
 
-    // Reference to students in the database
     const studentsRef = ref(database, "students");
-    // Create a new student record
     const newStudentRef = push(studentsRef);
-    // Set the student data
     await set(newStudentRef, {
       name: studentName,
       registrationNumber,
@@ -202,35 +187,28 @@ const TeacherDashboard = () => {
       photoURL: photoURL || null
     });
 
-    // Clear the form
     setStudentName("");
     setRegistrationNumber("");
     setSemester("");
     setStudentSubjects([]);
     setPhotoURL("");
 
-    // Show success message
     toast({
       title: "Student added",
       description: "The student has been added successfully.",
     });
   };
 
-  // Handle deleting a student
   const handleDeleteStudent = async (studentId: string) => {
-    // Reference to the student in the database
     const studentRef = ref(database, `students/${studentId}`);
-    // Remove the student
     await remove(studentRef);
 
-    // Show success message
     toast({
       title: "Student deleted",
       description: "The student has been deleted successfully.",
     });
   };
 
-  // Handle editing a student
   const handleEditStudent = (student: Student) => {
     setEditingStudent(student);
     setStudentName(student.name);
@@ -241,11 +219,9 @@ const TeacherDashboard = () => {
     setOpenEditDialog(true);
   };
 
-  // Save edited student
   const saveEditedStudent = async () => {
     if (!editingStudent) return;
 
-    // Validation
     if (!studentName || !registrationNumber || !semester) {
       toast({
         title: "Missing required fields",
@@ -255,7 +231,6 @@ const TeacherDashboard = () => {
       return;
     }
 
-    // Check if registration number is already used by another student
     const existingStudent = students.find(
       s => s.registrationNumber === registrationNumber && s.id !== editingStudent.id
     );
@@ -269,10 +244,8 @@ const TeacherDashboard = () => {
       return;
     }
 
-    // Reference to the student in the database
     const studentRef = ref(database, `students/${editingStudent.id}`);
     
-    // Update the student data
     await update(studentRef, {
       name: studentName,
       registrationNumber,
@@ -281,7 +254,6 @@ const TeacherDashboard = () => {
       photoURL: photoURL || null
     });
 
-    // Reset form and state
     setEditingStudent(null);
     setStudentName("");
     setRegistrationNumber("");
@@ -290,16 +262,13 @@ const TeacherDashboard = () => {
     setPhotoURL("");
     setOpenEditDialog(false);
 
-    // Show success message
     toast({
       title: "Student updated",
       description: "The student has been updated successfully.",
     });
   };
 
-  // Handle adding a subject
   const handleAddSubject = async () => {
-    // Validation
     if (!subjectName || !subjectCode || !subjectSemester) {
       toast({
         title: "Missing required fields",
@@ -309,7 +278,6 @@ const TeacherDashboard = () => {
       return;
     }
 
-    // Check if subject code is already used
     const existingSubject = subjects.find(s => s.code === subjectCode);
     if (existingSubject) {
       toast({
@@ -320,44 +288,34 @@ const TeacherDashboard = () => {
       return;
     }
 
-    // Reference to subjects in the database
     const subjectsRef = ref(database, "subjects");
-    // Create a new subject record
     const newSubjectRef = push(subjectsRef);
-    // Set the subject data
     await set(newSubjectRef, {
       name: subjectName,
       code: subjectCode,
       semester: subjectSemester
     });
 
-    // Clear the form
     setSubjectName("");
     setSubjectCode("");
     setSubjectSemester("");
 
-    // Show success message
     toast({
       title: "Subject added",
       description: "The subject has been added successfully.",
     });
   };
 
-  // Handle deleting a subject
   const handleDeleteSubject = async (subjectId: string) => {
-    // Reference to the subject in the database
     const subjectRef = ref(database, `subjects/${subjectId}`);
-    // Remove the subject
     await remove(subjectRef);
 
-    // Show success message
     toast({
       title: "Subject deleted",
       description: "The subject has been deleted successfully.",
     });
   };
 
-  // Handle uploading a photo to Cloudinary
   const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files || files.length === 0) return;
@@ -366,15 +324,13 @@ const TeacherDashboard = () => {
     setIsUploadingPhoto(true);
     
     try {
-      // Create a Cloudinary unsigned upload preset
-      const cloudName = "your-cloud-name"; // Replace with your Cloudinary cloud name
-      const uploadPreset = "student-photos-unsigned"; // Replace with your unsigned upload preset
-      
+      const cloudName = "your-cloud-name";
+      const uploadPreset = "student-photos-unsigned";
+
       const formData = new FormData();
       formData.append('file', file);
       formData.append('upload_preset', uploadPreset);
       
-      // Upload to Cloudinary
       const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
         method: 'POST',
         body: formData
@@ -401,7 +357,6 @@ const TeacherDashboard = () => {
     }
   };
 
-  // Toggle subject selection for a student
   const toggleSubjectSelection = (subjectId: string) => {
     if (studentSubjects.includes(subjectId)) {
       setStudentSubjects(studentSubjects.filter(id => id !== subjectId));
@@ -410,7 +365,6 @@ const TeacherDashboard = () => {
     }
   };
 
-  // Animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: { 
@@ -460,7 +414,6 @@ const TeacherDashboard = () => {
           </TabsTrigger>
         </TabsList>
 
-        {/* Students Tab */}
         <TabsContent value="students" className="space-y-6">
           <Card className="bg-white shadow-md border-examblue-100">
             <CardHeader>
@@ -642,7 +595,6 @@ const TeacherDashboard = () => {
           </motion.div>
         </TabsContent>
 
-        {/* Subjects Tab */}
         <TabsContent value="subjects" className="space-y-6">
           <Card className="bg-white shadow-md border-examblue-100">
             <CardHeader>
@@ -744,7 +696,6 @@ const TeacherDashboard = () => {
           </motion.div>
         </TabsContent>
 
-        {/* Exams Tab */}
         <TabsContent value="exams" className="space-y-6">
           <Card className="bg-white shadow-md border-examblue-100">
             <CardHeader>
@@ -757,7 +708,6 @@ const TeacherDashboard = () => {
               <Button 
                 className="bg-examblue-600 hover:bg-examblue-700 text-white"
                 onClick={() => {
-                  // This would be replaced with actual exam creation navigation or modal
                   toast({
                     title: "Create Exam",
                     description: "Exam creation feature coming soon!",
@@ -848,7 +798,6 @@ const TeacherDashboard = () => {
         </TabsContent>
       </Tabs>
 
-      {/* Edit Student Dialog */}
       <Dialog open={openEditDialog} onOpenChange={setOpenEditDialog}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
